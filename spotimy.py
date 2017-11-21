@@ -37,7 +37,7 @@ class Spotimy(object):
         if len(sys.argv) > 1:
             self.username = sys.argv[1]
         else:
-            print "Usage: %s username" % (sys.argv[0],)
+            print u"Usage: %s username" % (sys.argv[0],)
             sys.exit()
 
         token = util.prompt_for_user_token(self.username, scope, **token_params)
@@ -45,23 +45,24 @@ class Spotimy(object):
         if token:
             self.sp = spotipy.Spotify(auth=token)
         else:
-            print "Can't get token for", self.username
+            print u"Can't get token for", self.username
             sys.exit()
 
     def add_my_plist_tracks_to_library(self, save_playlists):
-        print "Adding all tracks in playlists to user's library."
+        print u"Adding all tracks in playlists to user's library."
         for plist in self.sp.current_user_playlists()["items"]:
             if plist["name"] in save_playlists:
-                print plist["name"]
                 self.add_playlist_tracks_to_library(plist)
 
     def add_playlist_tracks_to_library(self, playlist):
+        print u"Adding tracks from playlist '{}' to user library".format(playlist["name"])
         tracks = self.get_playlist_tracks(playlist)
         while len(tracks) > 48:
             subtracks = tracks[:48]
             self.sp.current_user_saved_tracks_add(tracks=subtracks)
             tracks = tracks[48:]
-        self.sp.current_user_saved_tracks_add(tracks=tracks)
+        if tracks:
+            self.sp.current_user_saved_tracks_add(tracks=tracks)
 
     def get_playlist_by_name(self, plist_name):
         for plist in self.sp.current_user_playlists()["items"]:
@@ -71,11 +72,34 @@ class Spotimy(object):
     def get_playlist_tracks(self, playlist, titles=False):
         if not playlist:
             return []
-        tracks = self.sp.user_playlist(
-            self.username, playlist["id"], fields="tracks,id")
+        result = []
+        limit = 50
+        biglimit = 1000
+        offset = 0
+        total = None
+        while (len(result) < biglimit and (total is None or len(result) < total)):
+            sub = self.sp.user_playlist_tracks(
+                self.username, playlist["id"], limit=limit, offset=offset)
+            result.extend(sub["items"])
+            total = sub["total"]
+            offset += limit
 
         field = "name" if titles else "id"
-        return map(lambda t: t["track"][field], tracks["tracks"]["items"])
+        return map(lambda t: t["track"][field], result)
+
+    def clear_playlist(self, playlist):
+        print u"Clearing playlist '{}'".format(playlist)
+        playlist = self.get_playlist_by_name(playlist)
+        tracks = self.get_playlist_tracks(playlist)
+        if len(tracks) < 100:
+            self.sp.user_playlist_remove_all_occurrences_of_tracks(
+                self.username, playlist["id"], tracks)
+        else:
+            while len(tracks):
+                sub_tracks = tracks[:100]
+                tracks = tracks[100:]
+                self.sp.user_playlist_remove_all_occurrences_of_tracks(
+                    self.username, playlist["id"], sub_tracks)
 
     def get_album_tracks(self, album, titles=False):
         if not album:
@@ -95,7 +119,7 @@ class Spotimy(object):
         return map(lambda t: t[field], result)
 
     def get_user_albums(self):
-        print "Loading user albums"
+        print u"Loading user albums"
         albums = []
         limit = 50
         biglimit = 1000
@@ -108,44 +132,56 @@ class Spotimy(object):
             offset += limit
         return albums
 
-    def add_library_to_sorting_plist(self, needs_sorting_playlist, sort_playlists):
-        print "Search library and add un-playlisted tracks to playlist [{}]".format(
-            needs_sorting_playlist,
-        )
+    def add_library_to_sorting_plist(self, needs_sorting_playlist, sort_playlists, clear=True):
+        print u"Finding user tracks that should be sorted to playlists"
+        if clear:
+            self.clear_playlist(needs_sorting_playlist)
         offset = 0
-        limit = 100
-        biglimit = 10000
-        my_library = []
+        limit = 50
+        repeat_count = 2
+        previous_length = None
+        my_library = set()
         total = None
-        already_sorted = []
+        already_sorted = set()
         needs_sorting_playlist = self.get_playlist_by_name(needs_sorting_playlist)
         needs_sorting = self.get_playlist_tracks(needs_sorting_playlist)
+        print len(needs_sorting), u"tracks already in the sorting playlist"
         for plname in sort_playlists:
-            already_sorted.extend(self.get_playlist_tracks(self.get_playlist_by_name(plname)))
+            already_sorted.update(self.get_playlist_tracks(self.get_playlist_by_name(plname)))
         for album in self.get_user_albums():
-            already_sorted.extend(self.get_album_tracks(album))
-        print len(already_sorted), "tracks already sorted"
-        print len(needs_sorting), "tracks already in need to be sorted"
-        while len(my_library) < biglimit and (total is None or len(my_library) < total):
-            print offset
+            already_sorted.update(self.get_album_tracks(album))
+        print len(already_sorted), u"tracks already sorted in user playlists and albums"
+        print u"Loading whole library, this will take some time...."
+        while repeat_count and (total is None or len(my_library) < total):
             saved_tracks = self.sp.current_user_saved_tracks(limit=limit, offset=offset)
-
-            my_library.extend(saved_tracks["items"])
+            my_library.update(
+                map(lambda t: t["track"]["id"], saved_tracks["items"])
+            )
             total = saved_tracks["total"]
             offset += limit
-        print len(my_library), "total tracks"
-        to_sort = []
+            if previous_length is not None and len(my_library) == previous_length:
+                repeat_count -= 1
+            previous_length = len(my_library)
+        print len(my_library), u"total tracks"
+        to_sort = set()
         for track in my_library:
             if (
-                track["track"]["id"] not in needs_sorting and
-                track["track"]["id"] not in already_sorted
+                track not in needs_sorting and
+                track not in already_sorted
             ):
-                to_sort.append(track["track"]["id"])
-        print len(to_sort), "tracks to sort"
-        self.sp.user_playlist_add_tracks(
-            self.username, needs_sorting_playlist["id"],
-            [track["track"]["id"], ],
-        )
+                to_sort.add(track)
+        print len(to_sort), u"tracks to sort"
+        to_sort = list(to_sort)
+        while len(to_sort) > 100:
+            sub_tracks = to_sort[:100]
+            to_sort = to_sort[100:]
+            self.sp.user_playlist_add_tracks(
+                self.username, needs_sorting_playlist["id"], sub_tracks,
+            )
+        if to_sort:
+            self.sp.user_playlist_add_tracks(
+                self.username, needs_sorting_playlist["id"], to_sort,
+            )
 
 
 def main():
@@ -154,16 +190,16 @@ def main():
     save_playlists = [
         "Baume au coeur", "piano", "Douceur, detente", "Swing", "OMNI",
         "Morning boost up", "Forget everything and get into a blind trance",
-        "Steampunk and strange stuff", "Nostalgie", "Pump It up !!",
+        "Nostalgie", "Pump It up !!", "VRAC",
         "share it maybe", u"Frissons à l'unisson", "Ondulations",
         "Route 66 and other highways", "Will you dance with me ?",
         "Know me through music I love...", "Interesting covers", "MedFan", "Blues junkie",
         "Jazzy or not", "Cosy Road Trip", "Mes titres Shazam", "Rock Box",
-        u"À tester, découvrir", u"Épique", "VRAC",
+        u"À tester, découvrir", u"Épique", "Hard as metal",
         "Viens danser tout contre moi", "Endless Trip on a Steel Dragonfly", "Cosy",
-        "Enfants", u"Sélection", "Favoris des radios", needs_sorting_playlist,
+        "Enfants", "Favoris des radios", needs_sorting_playlist,
     ]
-    # sp.add_my_plist_tracks_to_library(save_playlists)
+    sp.add_my_plist_tracks_to_library(save_playlists)
     sp.add_library_to_sorting_plist(needs_sorting_playlist, save_playlists)
 
 
