@@ -15,7 +15,7 @@ def main():
         "Route 66 and other highways", "Will you dance with me ?",
         "Know me through music I love...", "Interesting covers", "MedFan", "Blues junkie",
         "Jazzy or not", "Cosy Road Trip", "Mes titres Shazam", "Rock Box",
-        u"À tester, découvrir", u"Épique", "VRAC",
+        u"À tester, découvrir", u"Épique", "VRAC", "Hard as metal",
         "Viens danser tout contre moi", "Endless Trip on a Steel Dragonfly", "Cosy",
         "Enfants", u"Sélection", "Favoris des radios", needs_sorting_playlist,
     ]
