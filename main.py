@@ -1,26 +1,46 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import yaml
+import os
 from spotimy.client import Spotimy
 
 
+def load_config():
+    config_filename = os.path.join(os.path.expanduser("~"), ".spotimyrc")
+    config = {}
+    if os.path.exists(config_filename):
+        with open(config_filename, "r") as fp:
+            config = yaml.load(fp)
+    config["token"] = load_token_file()
+    return config
+
+
+def create_token_file():
+    token_params = {
+        "client_id": "YOUR_CLIENT_ID",
+        "client_secret": "YOUR_CLIENT_SECRET",
+        "redirect_uri": "YOUR_REDIRECT_URI",
+    }
+    token_filename = os.path.join(os.path.expanduser("~"), ".spotifytoken")
+    with open(token_filename, "w") as fp:
+        yaml.dump(token_params, fp, default_flow_style=False)
+
+
+def load_token_file():
+    token_filename = os.path.join(os.path.expanduser("~"), ".spotifytoken")
+    with open(token_filename, "r") as fp:
+        token_params = yaml.load(fp)
+    return token_params
+
+
 def main():
-    sp = Spotimy()
-    needs_sorting_playlist = "needs sorting"
-    save_playlists = [
-        "Baume au coeur", "piano", "Douceur, detente", "Swing", "OMNI",
-        "Morning boost up", "Forget everything and get into a blind trance",
-        "Steampunk and strange stuff", "Nostalgie", "Pump It up !!",
-        "share it maybe", u"Frissons à l'unisson", "Ondulations",
-        "Route 66 and other highways", "Will you dance with me ?",
-        "Know me through music I love...", "Interesting covers", "MedFan", "Blues junkie",
-        "Jazzy or not", "Cosy Road Trip", "Mes titres Shazam", "Rock Box",
-        u"À tester, découvrir", u"Épique", "VRAC", "Hard as metal",
-        "Viens danser tout contre moi", "Endless Trip on a Steel Dragonfly", "Cosy",
-        "Enfants", u"Sélection", "Favoris des radios", needs_sorting_playlist,
-    ]
-    # sp.add_my_plist_tracks_to_library(save_playlists)
-    # sp.add_library_to_sorting_plist(needs_sorting_playlist, save_playlists)
+    config = load_config()
+    config.setdefault("needs_sorting_playlist", "needs sorting")
+    config.setdefault("save_playlists", [])
+    sp = Spotimy(config)
+    sp.add_my_plist_tracks_to_library()
+    sp.add_library_to_sorting_plist()
 
 
 if __name__ == "__main__":

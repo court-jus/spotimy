@@ -9,30 +9,15 @@ from spotipy.oauth2 import SpotifyClientCredentials
 import sys
 
 
-def create_token_file():
-    token_params = {
-        "client_id": "YOUR_CLIENT_ID",
-        "client_secret": "YOUR_CLIENT_SECRET",
-        "redirect_uri": "YOUR_REDIRECT_URI",
-    }
-    token_filename = os.path.join(os.path.expanduser("~"), ".spotifytoken")
-    with open(token_filename, "w") as fp:
-        json.dump(token_params, fp)
-
-def load_token_file():
-    token_filename = os.path.join(os.path.expanduser("~"), ".spotifytoken")
-    with open(token_filename, "r") as fp:
-        token_params = json.load(fp)
-    return token_params
-
 class Spotimy(object):
 
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.get_sp_client()
 
     def get_sp_client(self):
         scope = 'user-library-read playlist-modify-private playlist-modify-public user-library-modify'
-        token_params = load_token_file()
+        token_params = self.config["token"]
 
         if len(sys.argv) > 1:
             self.username = sys.argv[1]
@@ -48,7 +33,8 @@ class Spotimy(object):
             print u"Can't get token for", self.username
             sys.exit()
 
-    def add_my_plist_tracks_to_library(self, save_playlists):
+    def add_my_plist_tracks_to_library(self):
+        save_playlists = self.config["sp"]
         print u"Adding all tracks in playlists to user's library."
         for plist in self.sp.current_user_playlists()["items"]:
             if plist["name"] in save_playlists:
@@ -132,7 +118,9 @@ class Spotimy(object):
             offset += limit
         return albums
 
-    def add_library_to_sorting_plist(self, needs_sorting_playlist, sort_playlists, clear=True):
+    def add_library_to_sorting_plist(self, clear=True):
+        needs_sorting_playlist = self.config["nsp"]
+        sort_playlists = self.config["sp"]
         print u"Finding user tracks that should be sorted to playlists"
         if clear:
             self.clear_playlist(needs_sorting_playlist)
@@ -182,31 +170,3 @@ class Spotimy(object):
             self.sp.user_playlist_add_tracks(
                 self.username, needs_sorting_playlist["id"], to_sort,
             )
-
-
-def main():
-    sp = Spotimy()
-    needs_sorting_playlist = "needs sorting"
-    save_playlists = [
-        "Baume au coeur", "piano", "Douceur, detente", "Swing", "OMNI",
-        "Morning boost up", "Forget everything and get into a blind trance",
-        "Nostalgie", "Pump It up !!", "VRAC",
-        "share it maybe", u"Frissons à l'unisson", "Ondulations",
-        "Route 66 and other highways", "Will you dance with me ?",
-        "Know me through music I love...", "Interesting covers", "MedFan", "Blues junkie",
-        "Jazzy or not", "Cosy Road Trip", "Mes titres Shazam", "Rock Box",
-        u"À tester, découvrir", u"Épique", "Hard as metal",
-        "Viens danser tout contre moi", "Endless Trip on a Steel Dragonfly", "Cosy",
-        "Enfants", "Favoris des radios", needs_sorting_playlist,
-    ]
-    sp.add_my_plist_tracks_to_library(save_playlists)
-    sp.add_library_to_sorting_plist(needs_sorting_playlist, save_playlists)
-
-
-if __name__ == "__main__":
-    # Uncomment this after changing YOUR_CLIENT_* to
-    # create the token file ~/.spotifytoken
-    #
-    # create_token_file()
-    #
-    main()
