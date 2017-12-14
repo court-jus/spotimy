@@ -61,6 +61,13 @@ def main():
         "--create-token-file", action="store_true", default=False,
         help=("Create token file, args should then be "
               "USERNAME, CLIENT_ID, CLIENT_SECRET and REDIRECT_URI"))
+    parser.add_argument(
+        "--add-to-library", action="store_true", default=False,
+        help=("Add tracks from playlist to user library."))
+    parser.add_argument(
+        "--sort-library", action="store_true", default=False,
+        help=("Add tracks from library but not in any playlist to "
+              "the dedicated 'need sorting' playlist."))
     args = parser.parse_args()
     config = load_config()
     config.setdefault("nsp", "needs sorting")
@@ -88,8 +95,10 @@ def main():
             print("Wrong number of arguments for --create-token-file.")
         return
     sp = Spotimy(config)
-    sp.add_my_plist_tracks_to_library()
-    sp.add_library_to_sorting_plist()
+    if args.add_to_library:
+        sp.add_my_plist_tracks_to_library()
+    if args.sort_library:
+        sp.add_library_to_sorting_plist()
 
 
 if __name__ == "__main__":
