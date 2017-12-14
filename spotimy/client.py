@@ -19,12 +19,7 @@ class Spotimy(object):
         scope = 'user-library-read playlist-modify-private playlist-modify-public user-library-modify'
         token_params = self.config["token"]
 
-        if len(sys.argv) > 1:
-            self.username = sys.argv[1]
-        else:
-            print u"Usage: %s username" % (sys.argv[0],)
-            sys.exit()
-
+        self.username = token_params.pop("username")
         token = util.prompt_for_user_token(self.username, scope, **token_params)
 
         if token:
