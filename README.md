@@ -49,9 +49,17 @@ developer page: https://developer.spotify.com/my-applications/
 
 When everything is setup, launch the script with
 
-    python main.py YOUR_USERNAME
+    python main.py --help
 
-It will first gather tracks from all your "sp" playlists and add them to
-your library, then each track that is in your library but not in any of
+## Actions
+
+### Add to library
+
+It will gather tracks from all your "sp" playlists and add them to
+your library.
+
+### Sort library
+
+Each track that is in your library but not in any of
 your "sp" playlist nor in any of your "saved albums" on Spotify will be
 added to your "nsp" playlist.
