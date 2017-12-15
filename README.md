@@ -1,9 +1,9 @@
 # spotimy
-Script to help with spotify library management
+Script to help with Spotify library management
 
 ## Description
 
-I wrote this script because I almost only listen to playlist on spotify
+I wrote this script because I almost only listen to playlist on Spotify
 but I add tracks to my library on a regular basis and never listen to
 them if they are not in playlists.
 
@@ -31,6 +31,12 @@ pip:
     . ./.venv/bin/activate
     pip install -Ur requirements.txt
 
+### Dependencies
+
+This script uses the spotipy library :
+
+http://spotipy.readthedocs.io/en/latest/
+
 ## Usage
 
 The script uses a config file, stored in ~/.spotimyrc in yaml format, there
@@ -44,7 +50,7 @@ need to be sorted (this playlist should exist on Spotify).
 to check if tracks are already sorted or not.
 
 There is also a tokefile, stored in ~/.spotifytoken, in yaml format too.
-There is also an example. You can get your token informations on the spotify
+There is also an example. You can get your token informations on the Spotify
 developer page: https://developer.spotify.com/my-applications/
 
 When everything is setup, launch the script with
@@ -63,3 +69,9 @@ your library.
 Each track that is in your library but not in any of
 your "sp" playlist nor in any of your "saved albums" on Spotify will be
 added to your "nsp" playlist.
+
+### Save Discover
+
+This saves tracks from your "Discover Weekly" selection created by Spotify
+to a playlist of your choice. This is useful if you don't wan't to miss any
+Spotify suggestion.

@@ -50,6 +50,10 @@ def main():
         help=("Set the name of the playlist that will gather tracks that need "
               "to be sorted (must exist on Spotify)."))
     parser.add_argument(
+        "--discover", action="store",
+        help=("Set the name of the playlist that will gather tracks from "
+              "discover weekly (must exist on Spotify)."))
+    parser.add_argument(
         "--add", action="store",
         help=("Add a playlist."))
     parser.add_argument(
@@ -68,14 +72,22 @@ def main():
         "--sort-library", action="store_true", default=False,
         help=("Add tracks from library but not in any playlist to "
               "the dedicated 'need sorting' playlist."))
+    parser.add_argument(
+        "--save-discover", action="store_true", default=False,
+        help=("Add tracks from discover weekly that are not in library "
+              "to 'discover later' playlist, also remove from that "
+              "playlist tracks that are in library."))
     args = parser.parse_args()
     config = load_config()
     config.setdefault("nsp", "needs sorting")
+    config.setdefault("dl", "discover later")
     config.setdefault("sp", [])
     # Edit config
     new_config = {}
     if args.need_sorting:
         new_config["nsp"] = args.need_sorting
+    if args.discover:
+        new_config["dl"] = args.discover
     if args.add:
         new_config["sp"] = config["sp"]
         new_config["sp"].append(args.add)
@@ -95,6 +107,8 @@ def main():
             print("Wrong number of arguments for --create-token-file.")
         return
     sp = Spotimy(config)
+    if args.save_discover:
+        sp.save_discover()
     if args.add_to_library:
         sp.add_my_plist_tracks_to_library()
     if args.sort_library:
