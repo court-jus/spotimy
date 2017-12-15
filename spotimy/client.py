@@ -50,9 +50,11 @@ class Spotimy(object):
             if unicode(plist["name"]) == unicode(plist_name):
                 return plist
 
-    def get_playlist_tracks(self, playlist, titles=False):
+    def get_playlist_tracks(self, playlist, titles=False, username=None):
         if not playlist:
             return []
+        if username is None:
+            username = self.username
         result = []
         limit = 50
         biglimit = 1000
@@ -60,7 +62,7 @@ class Spotimy(object):
         total = None
         while (len(result) < biglimit and (total is None or len(result) < total)):
             sub = self.sp.user_playlist_tracks(
-                self.username, playlist["id"], limit=limit, offset=offset)
+                username, playlist["id"], limit=limit, offset=offset)
             result.extend(sub["items"])
             total = sub["total"]
             offset += limit
@@ -165,3 +167,30 @@ class Spotimy(object):
             self.sp.user_playlist_add_tracks(
                 self.username, needs_sorting_playlist["id"], to_sort,
             )
+
+    def save_discover(self):
+        # Find "Discover weekly" playlist
+        dw = self.get_playlist_by_name("Discover Weekly")
+        # Find "discover later" playlist
+        dl = self.get_playlist_by_name(self.config["dl"])
+        if dw is None or dl is None:
+            print("Can't find [Discover Weekly] or [{}] playlist.".format(self.config["dl"]))
+            return
+        dw_tracks = self.get_playlist_tracks(dw, username="spotify")
+        dl_tracks = self.get_playlist_tracks(dl)
+        # Remove tracks from "discover later" if they are in library
+        to_remove = []
+        for track in dl_tracks:
+            contained = self.sp.current_user_saved_tracks_contains(tracks=[track])[0]
+            if contained:
+                to_remove.append(track)
+        print("{} tracks to remove from [{}]".format(len(to_remove), self.config["dl"]))
+        self.sp.user_playlist_remove_all_occurrences_of_tracks(self.username, dl["id"], to_remove)
+        # Add tracks from "Discover weekly" to "discover later" if they are not in library
+        to_add = []
+        for track in dw_tracks:
+            contained = self.sp.current_user_saved_tracks_contains(tracks=[track])[0]
+            if not contained:
+                to_add.append(track)
+        print("{} tracks to add to [{}]".format(len(to_add), self.config["dl"]))
+        self.sp.user_playlist_add_tracks(self.username, dl["id"], to_add)
