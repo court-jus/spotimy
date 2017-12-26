@@ -216,3 +216,14 @@ class Spotimy(object):
                     self.sp.user_playlist_add_tracks(self.username, plist["id"], sub_tracks)
             if tracks:
                 self.sp.user_playlist_add_tracks(self.username, plist["id"], tracks)
+
+    def list_unhandled(self):
+        for plist in self.sp.current_user_playlists()["items"]:
+            if unicode(plist["name"]) not in self.config["sp"]:
+                yield plist
+
+    def find_unhandled(self):
+        for plist in self.list_unhandled():
+            if plist["owner"]["id"] != self.username:
+                continue
+            print("{id}: {name}".format(**plist))
