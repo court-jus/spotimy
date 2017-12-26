@@ -59,6 +59,12 @@ def main():
     parser.add_argument(
         "--del", dest="remove", action="store",
         help=("Remove a playlist."))
+    parser.add_argument(
+        "--add-rp", action="store",
+        help=("Add a playlist to be randomized."))
+    parser.add_argument(
+        "--del-rp", dest="remove_rp", action="store",
+        help=("Remove a playlist from randomized ones."))
     parser.add_argument("args", nargs="*")
     # Actions
     parser.add_argument(
@@ -77,11 +83,15 @@ def main():
         help=("Add tracks from discover weekly that are not in library "
               "to 'discover later' playlist, also remove from that "
               "playlist tracks that are in library."))
+    parser.add_argument(
+        "--shuffle", action="store_true", default=False,
+        help=("Shuffle the playlists listed in the 'rp' config section."))
     args = parser.parse_args()
     config = load_config()
     config.setdefault("nsp", "needs sorting")
     config.setdefault("dl", "discover later")
     config.setdefault("sp", [])
+    config.setdefault("rp", [])
     # Edit config
     new_config = {}
     if args.need_sorting:
@@ -94,6 +104,12 @@ def main():
     if args.remove and args.remove in config["sp"]:
         new_config["sp"] = config["sp"]
         new_config["sp"].remove(args.remove)
+    if args.add_rp:
+        new_config["rp"] = config["rp"]
+        new_config["rp"].append(args.add_rp)
+    if args.remove_rp and args.remove_rp in config["rp"]:
+        new_config["rp"] = config["rp"]
+        new_config["rp"].remove(args.remove)
     if new_config:
         config.update(new_config)
         new_config = config.copy()
@@ -113,6 +129,8 @@ def main():
         sp.add_my_plist_tracks_to_library()
     if args.sort_library:
         sp.add_library_to_sorting_plist()
+    if args.shuffle:
+        sp.shuffle(*args.args)
 
 
 if __name__ == "__main__":

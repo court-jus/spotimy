@@ -3,6 +3,7 @@
 
 import json
 import os
+import random
 import spotipy
 import spotipy.util as util
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -194,3 +195,15 @@ class Spotimy(object):
                 to_add.append(track)
         print("{} tracks to add to [{}]".format(len(to_add), self.config["dl"]))
         self.sp.user_playlist_add_tracks(self.username, dl["id"], to_add)
+
+    def shuffle(self, *plist_names):
+        if not plist_names:
+            plist_names = self.config["rp"]
+        for plist_name in plist_names:
+            print("Shuffling playlist [{}]".format(plist_name))
+            plist = self.get_playlist_by_name(plist_name)
+            if not plist:
+                continue
+            tracks = self.get_playlist_tracks(plist)
+            random.shuffle(tracks)
+            self.sp.user_playlist_replace_tracks(self.username, plist["id"], tracks)
