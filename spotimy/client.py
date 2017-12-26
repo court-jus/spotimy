@@ -208,4 +208,11 @@ class Spotimy(object):
                 continue
             tracks = self.get_playlist_tracks(plist)
             random.shuffle(tracks)
-            self.sp.user_playlist_replace_tracks(self.username, plist["id"], tracks)
+            self.sp.user_playlist_replace_tracks(self.username, plist["id"], tracks[:100])
+            if len(tracks) > 100:
+                while len(tracks) > 100:
+                    sub_tracks = tracks[:100]
+                    tracks = tracks[100:]
+                    self.sp.user_playlist_add_tracks(self.username, plist["id"], sub_tracks)
+            if tracks:
+                self.sp.user_playlist_add_tracks(self.username, plist["id"], tracks)
