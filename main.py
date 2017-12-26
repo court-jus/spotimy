@@ -99,17 +99,25 @@ def main():
     if args.discover:
         new_config["dl"] = args.discover
     if args.add:
-        new_config["sp"] = config["sp"]
-        new_config["sp"].append(args.add)
-    if args.remove and args.remove in config["sp"]:
-        new_config["sp"] = config["sp"]
-        new_config["sp"].remove(args.remove)
+        add = args.add.decode("utf-8")
+        if add not in config["sp"]:
+            new_config["sp"] = config["sp"]
+            new_config["sp"].append(add)
+    if args.remove:
+        remove = args.remove.decode("utf-8")
+        if remove in config["sp"]:
+            new_config["sp"] = config["sp"]
+            new_config["sp"].remove(remove)
     if args.add_rp:
-        new_config["rp"] = config["rp"]
-        new_config["rp"].append(args.add_rp)
-    if args.remove_rp and args.remove_rp in config["rp"]:
-        new_config["rp"] = config["rp"]
-        new_config["rp"].remove(args.remove)
+        add_rp = args.add_rp.decode("utf-8")
+        if add_rp not in config["rp"]:
+            new_config["rp"] = config["rp"]
+            new_config["rp"].append(add_rp)
+    if args.remove_rp:
+        remove_rp = args.remove_rp.decode("utf-8")
+        if remove_rp in config["rp"]:
+            new_config["rp"] = config["rp"]
+            new_config["rp"].remove(remove_rp)
     if new_config:
         config.update(new_config)
         new_config = config.copy()
