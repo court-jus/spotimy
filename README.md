@@ -80,3 +80,7 @@ Spotify suggestion.
 
 With a playlist name, this action shuffles the specified playlist, else it
 shuffles all the "rp" playlists.
+
+### Find new playlists
+
+This action finds playlists that are not handled.

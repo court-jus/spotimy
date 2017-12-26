@@ -88,6 +88,9 @@ def main():
     parser.add_argument(
         "--shuffle", action="store_true", default=False,
         help=("Shuffle the playlists listed in the 'rp' config section."))
+    parser.add_argument(
+        "--find-unhandled", action="store_true", default=False,
+        help=("Find playlists that are not in the config file."))
     args = parser.parse_args()
     config = load_config()
     config.setdefault("nsp", "needs sorting")
@@ -142,6 +145,8 @@ def main():
     if args.shuffle:
         plist_names = map(lambda name: name.decode("utf-8"), args.args)
         sp.shuffle(*plist_names)
+    if args.find_unhandled:
+        sp.find_unhandled()
 
 
 if __name__ == "__main__":
