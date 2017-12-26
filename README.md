@@ -75,3 +75,8 @@ added to your "nsp" playlist.
 This saves tracks from your "Discover Weekly" selection created by Spotify
 to a playlist of your choice. This is useful if you don't wan't to miss any
 Spotify suggestion.
+
+### Randomize playlists
+
+With a playlist name, this action shuffles the specified playlist, else it
+shuffles all the "rp" playlists.
