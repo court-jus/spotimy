@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import argparse
 import yaml
 import os
@@ -138,7 +140,8 @@ def main():
     if args.sort_library:
         sp.add_library_to_sorting_plist()
     if args.shuffle:
-        sp.shuffle(*args.args)
+        plist_names = map(lambda name: name.decode("utf-8"), args.args)
+        sp.shuffle(*plist_names)
 
 
 if __name__ == "__main__":

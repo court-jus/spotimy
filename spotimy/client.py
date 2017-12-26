@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import json
 import os
 import random
@@ -26,18 +28,18 @@ class Spotimy(object):
         if token:
             self.sp = spotipy.Spotify(auth=token)
         else:
-            print u"Can't get token for", self.username
+            print "Can't get token for", self.username
             sys.exit()
 
     def add_my_plist_tracks_to_library(self):
         save_playlists = self.config["sp"]
-        print u"Adding all tracks in playlists to user's library."
+        print "Adding all tracks in playlists to user's library."
         for plist in self.sp.current_user_playlists()["items"]:
             if plist["name"] in save_playlists:
                 self.add_playlist_tracks_to_library(plist)
 
     def add_playlist_tracks_to_library(self, playlist):
-        print u"Adding tracks from playlist '{}' to user library".format(playlist["name"])
+        print "Adding tracks from playlist '{}' to user library".format(playlist["name"])
         tracks = self.get_playlist_tracks(playlist)
         while len(tracks) > 48:
             subtracks = tracks[:48]
@@ -72,7 +74,7 @@ class Spotimy(object):
         return map(lambda t: t["track"][field], result)
 
     def clear_playlist(self, playlist):
-        print u"Clearing playlist '{}'".format(playlist)
+        print "Clearing playlist '{}'".format(playlist)
         playlist = self.get_playlist_by_name(playlist)
         tracks = self.get_playlist_tracks(playlist)
         if len(tracks) < 100:
@@ -103,7 +105,7 @@ class Spotimy(object):
         return map(lambda t: t[field], result)
 
     def get_user_albums(self):
-        print u"Loading user albums"
+        print "Loading user albums"
         albums = []
         limit = 50
         biglimit = 1000
@@ -119,7 +121,7 @@ class Spotimy(object):
     def add_library_to_sorting_plist(self, clear=True):
         needs_sorting_playlist = self.config["nsp"]
         sort_playlists = self.config["sp"]
-        print u"Finding user tracks that should be sorted to playlists"
+        print "Finding user tracks that should be sorted to playlists"
         if clear:
             self.clear_playlist(needs_sorting_playlist)
         offset = 0
@@ -131,13 +133,13 @@ class Spotimy(object):
         already_sorted = set()
         needs_sorting_playlist = self.get_playlist_by_name(needs_sorting_playlist)
         needs_sorting = self.get_playlist_tracks(needs_sorting_playlist)
-        print len(needs_sorting), u"tracks already in the sorting playlist"
+        print len(needs_sorting), "tracks already in the sorting playlist"
         for plname in sort_playlists:
             already_sorted.update(self.get_playlist_tracks(self.get_playlist_by_name(plname)))
         for album in self.get_user_albums():
             already_sorted.update(self.get_album_tracks(album))
-        print len(already_sorted), u"tracks already sorted in user playlists and albums"
-        print u"Loading whole library, this will take some time...."
+        print len(already_sorted), "tracks already sorted in user playlists and albums"
+        print "Loading whole library, this will take some time...."
         while repeat_count and (total is None or len(my_library) < total):
             saved_tracks = self.sp.current_user_saved_tracks(limit=limit, offset=offset)
             my_library.update(
@@ -148,7 +150,7 @@ class Spotimy(object):
             if previous_length is not None and len(my_library) == previous_length:
                 repeat_count -= 1
             previous_length = len(my_library)
-        print len(my_library), u"total tracks"
+        print len(my_library), "total tracks"
         to_sort = set()
         for track in my_library:
             if (
@@ -156,7 +158,7 @@ class Spotimy(object):
                 track not in already_sorted
             ):
                 to_sort.add(track)
-        print len(to_sort), u"tracks to sort"
+        print len(to_sort), "tracks to sort"
         to_sort = list(to_sort)
         while len(to_sort) > 100:
             sub_tracks = to_sort[:100]
