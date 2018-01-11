@@ -227,3 +227,17 @@ class Spotimy(object):
             if plist["owner"]["id"] != self.username:
                 continue
             print("{id}: {name}".format(**plist))
+
+    def find_song(self, song_url, verbose=True):
+        song_id = song_url.split("/")[-1]
+        plists = []
+        print("Find song [{}] in playlists.".format(song_id))
+        for plist in self.sp.current_user_playlists()["items"]:
+            if plist["name"] not in self.config["sp"] and plist["name"] not in self.config["rp"]:
+                continue
+            tracks = self.get_playlist_tracks(plist)
+            if song_id in tracks:
+                if verbose:
+                    print(plist["name"])
+                plists.append(plist)
+        return plists
