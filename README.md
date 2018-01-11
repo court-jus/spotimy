@@ -84,3 +84,9 @@ shuffles all the "rp" playlists.
 ### Find new playlists
 
 This action finds playlists that are not handled.
+
+### Find song
+
+This action finds the specified song (can be the song URI
+https://open.spotify.com/track/7GwGEc8Gb07LhVJ9CTC9tM or the song ID
+7GwGEc8Gb07LhVJ9CTC9tM) in the "shuffle playlists" and "sort playlists".

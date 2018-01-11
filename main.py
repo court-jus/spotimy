@@ -91,6 +91,9 @@ def main():
     parser.add_argument(
         "--find-unhandled", action="store_true", default=False,
         help=("Find playlists that are not in the config file."))
+    parser.add_argument(
+        "--find-song", action="store",
+        help=("Find playlists that contain that song."))
     args = parser.parse_args()
     config = load_config()
     config.setdefault("nsp", "needs sorting")
@@ -147,6 +150,8 @@ def main():
         sp.shuffle(*plist_names)
     if args.find_unhandled:
         sp.find_unhandled()
+    if args.find_song:
+        sp.find_song(args.find_song)
 
 
 if __name__ == "__main__":
