@@ -53,7 +53,7 @@ class Spotimy(object):
             if unicode(plist["name"]) == unicode(plist_name):
                 return plist
 
-    def get_playlist_tracks(self, playlist, titles=False, username=None):
+    def get_playlist_tracks(self, playlist, titles=False, username=None, full=False):
         if not playlist:
             return []
         if username is None:
@@ -70,6 +70,8 @@ class Spotimy(object):
             total = sub["total"]
             offset += limit
 
+        if full:
+            return result
         field = "name" if titles else "id"
         return map(lambda t: t["track"][field], result)
 
@@ -242,3 +244,50 @@ class Spotimy(object):
                     print(plist["name"])
                 plists.append(plist)
         return plists
+
+    def get_handled_playlists(self, exclude=None):
+        plists = []
+        if exclude is None:
+            exclude = []
+        for plist in self.sp.current_user_playlists()["items"]:
+            if plist["name"] not in self.config["sp"] and plist["name"] not in self.config["rp"]:
+                continue
+            if plist["name"] in exclude:
+                continue
+            plists.append(plist)
+        return plists
+
+    def find_duplicates(self, *plist_names):
+        plists = {}
+        found = []
+        if plist_names:
+            for plist_name in plist_names:
+                plists[plist_name] = self.get_playlist_tracks(
+                    self.get_playlist_by_name(plist_name), full=True)
+        else:
+            for plist in self.get_handled_playlists(exclude=self.config["nsp"]):
+                plists[plist["name"]] = self.get_playlist_tracks(plist, full=True)
+
+        for plist_name, plist_tracks in plists.items():
+            other_plists = {
+                pname: tracks
+                for pname, tracks in plists.items()
+                if pname != plist_name
+            }
+            if not other_plists:
+                # User only gave us one playlist, compare it with all other playlists
+                other_plists = {
+                    plist["name"]: self.get_playlist_tracks(plist, full=True)
+                    for plist in self.get_handled_playlists(exclude=self.config["nsp"])
+                    if plist["name"] != plist_name
+                }
+            for other_name, other_tracks in other_plists.items():
+                other_ids = map(lambda t: t["track"]["id"], other_tracks)
+                for track in plist_tracks:
+                    trackid = track["track"]["id"]
+                    if trackid in found:
+                        continue
+                    if trackid in other_ids:
+                        found.append(trackid)
+                        print("[{}] is in [{}] ans also in [{}]".format(
+                            track["track"]["name"], plist_name, other_name))

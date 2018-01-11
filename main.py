@@ -95,6 +95,9 @@ def main():
     parser.add_argument(
         "--find-song", action="store",
         help=("Find playlists that contain that song."))
+    parser.add_argument(
+        "--find-duplicates", action="store_true", default=False,
+        help=("Find duplicates (song in multiple playlists."))
     args = parser.parse_args()
     config = load_config()
     config.setdefault("nsp", "needs sorting")
@@ -153,6 +156,8 @@ def main():
         sp.find_unhandled()
     if args.find_song:
         sp.find_song(args.find_song)
+    if args.find_duplicates:
+        sp.find_duplicates(*args.args)
 
 
 if __name__ == "__main__":
