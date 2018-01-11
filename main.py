@@ -15,7 +15,8 @@ def load_config():
     if os.path.exists(config_filename):
         with open(config_filename, "r") as fp:
             config = yaml.load(fp)
-    config["token"] = load_token_file()
+    if os.path.exists(os.path.join(os.path.expanduser("~"), ".spotifytoken")):
+        config["token"] = load_token_file()
     return config
 
 
