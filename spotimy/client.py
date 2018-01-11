@@ -193,10 +193,11 @@ class Spotimy(object):
         to_add = []
         for track in dw_tracks:
             contained = self.sp.current_user_saved_tracks_contains(tracks=[track])[0]
-            if not contained:
+            if not contained and track not in dl_tracks:
                 to_add.append(track)
         print("{} tracks to add to [{}]".format(len(to_add), self.config["dl"]))
-        self.sp.user_playlist_add_tracks(self.username, dl["id"], to_add)
+        if to_add:
+            self.sp.user_playlist_add_tracks(self.username, dl["id"], to_add)
 
     def shuffle(self, *plist_names):
         if not plist_names:
