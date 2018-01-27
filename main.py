@@ -7,6 +7,7 @@ import argparse
 import yaml
 import os
 from spotimy.client import Spotimy
+from spotimy.tools import uprint
 
 
 def load_config():
@@ -140,7 +141,7 @@ def main():
         if len(args.args) == 4:
             create_token_file(*args.args)
         else:
-            print("Wrong number of arguments for --create-token-file.")
+            uprint("Wrong number of arguments for --create-token-file.")
         return
     sp = Spotimy(config)
     if args.save_discover:

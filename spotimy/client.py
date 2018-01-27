@@ -7,6 +7,7 @@ import json
 import os
 import pdb  # noqa
 import random
+from spotimy.tools import uprint
 import spotipy
 import spotipy.util as util
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -29,18 +30,18 @@ class Spotimy(object):
         if token:
             self.sp = spotipy.Spotify(auth=token)
         else:
-            print "Can't get token for", self.username
+            uprint("Can't get token for {}".format(self.username))
             sys.exit()
 
     def add_my_plist_tracks_to_library(self):
         save_playlists = self.config["sp"]
-        print "Adding all tracks in playlists to user's library."
+        uprint("Adding all tracks in playlists to user's library.")
         for plist in self.sp.current_user_playlists()["items"]:
             if plist["name"] in save_playlists:
                 self.add_playlist_tracks_to_library(plist)
 
     def add_playlist_tracks_to_library(self, playlist):
-        print "Adding tracks from playlist '{}' to user library".format(playlist["name"])
+        uprint("Adding tracks from playlist '{}' to user library".format(playlist["name"]))
         tracks = self.get_playlist_tracks(playlist)
         while len(tracks) > 48:
             subtracks = tracks[:48]
@@ -85,7 +86,7 @@ class Spotimy(object):
         return map(lambda t: t["track"][field], result)
 
     def clear_playlist(self, playlist):
-        print "Clearing playlist '{}'".format(playlist)
+        uprint("Clearing playlist '{}'".format(playlist))
         playlist = self.get_playlist_by_name(playlist)
         tracks = self.get_playlist_tracks(playlist)
         if len(tracks) < 100:
@@ -116,7 +117,7 @@ class Spotimy(object):
         return map(lambda t: t[field], result)
 
     def get_user_albums(self):
-        print "Loading user albums"
+        uprint("Loading user albums")
         albums = []
         limit = 50
         biglimit = 1000
@@ -132,7 +133,7 @@ class Spotimy(object):
     def add_library_to_sorting_plist(self, clear=True):
         needs_sorting_playlist = self.config["nsp"]
         sort_playlists = self.config["sp"]
-        print "Finding user tracks that should be sorted to playlists"
+        uprint("Finding user tracks that should be sorted to playlists")
         if clear:
             self.clear_playlist(needs_sorting_playlist)
         offset = 0
@@ -144,13 +145,13 @@ class Spotimy(object):
         already_sorted = set()
         needs_sorting_playlist = self.get_playlist_by_name(needs_sorting_playlist)
         needs_sorting = self.get_playlist_tracks(needs_sorting_playlist)
-        print len(needs_sorting), "tracks already in the sorting playlist"
+        uprint("{} tracks already in the sorting playlist".format(len(needs_sorting)))
         for plname in sort_playlists:
             already_sorted.update(self.get_playlist_tracks(self.get_playlist_by_name(plname)))
         for album in self.get_user_albums():
             already_sorted.update(self.get_album_tracks(album))
-        print len(already_sorted), "tracks already sorted in user playlists and albums"
-        print "Loading whole library, this will take some time...."
+        uprint("tracks already sorted in user playlists and albums".format(len(already_sorted)))
+        uprint("Loading whole library, this will take some time....")
         while repeat_count and (total is None or len(my_library) < total):
             saved_tracks = self.sp.current_user_saved_tracks(limit=limit, offset=offset)
             my_library.update(
@@ -161,7 +162,7 @@ class Spotimy(object):
             if previous_length is not None and len(my_library) == previous_length:
                 repeat_count -= 1
             previous_length = len(my_library)
-        print len(my_library), "total tracks"
+        uprint("{} total tracks".format(len(my_library)))
         to_sort = set()
         for track in my_library:
             if (
@@ -169,7 +170,7 @@ class Spotimy(object):
                 track not in already_sorted
             ):
                 to_sort.add(track)
-        print len(to_sort), "tracks to sort"
+        uprint("{} tracks to sort".format(len(to_sort)))
         to_sort = list(to_sort)
         while len(to_sort) > 100:
             sub_tracks = to_sort[:100]
@@ -188,7 +189,7 @@ class Spotimy(object):
         # Find "discover later" playlist
         dl = self.get_playlist_by_name(self.config["dl"])
         if dw is None or dl is None:
-            print("Can't find [Discover Weekly] or [{}] playlist.".format(self.config["dl"]))
+            uprint("Can't find [Discover Weekly] or [{}] playlist.".format(self.config["dl"]))
             return
         dw_tracks = self.get_playlist_tracks(dw, username="spotify")
         dl_tracks = self.get_playlist_tracks(dl)
@@ -198,7 +199,7 @@ class Spotimy(object):
             contained = self.sp.current_user_saved_tracks_contains(tracks=[track])[0]
             if contained:
                 to_remove.append(track)
-        print("{} tracks to remove from [{}]".format(len(to_remove), self.config["dl"]))
+        uprint("{} tracks to remove from [{}]".format(len(to_remove), self.config["dl"]))
         self.sp.user_playlist_remove_all_occurrences_of_tracks(self.username, dl["id"], to_remove)
         # Add tracks from "Discover weekly" to "discover later" if they are not in library
         to_add = []
@@ -206,7 +207,7 @@ class Spotimy(object):
             contained = self.sp.current_user_saved_tracks_contains(tracks=[track])[0]
             if not contained and track not in dl_tracks:
                 to_add.append(track)
-        print("{} tracks to add to [{}]".format(len(to_add), self.config["dl"]))
+        uprint("{} tracks to add to [{}]".format(len(to_add), self.config["dl"]))
         if to_add:
             self.sp.user_playlist_add_tracks(self.username, dl["id"], to_add)
 
@@ -214,7 +215,7 @@ class Spotimy(object):
         if not plist_names:
             plist_names = self.config["rp"]
         for plist_name in plist_names:
-            print("Shuffling playlist [{}]".format(plist_name))
+            uprint("Shuffling playlist [{}]".format(plist_name))
             plist = self.get_playlist_by_name(plist_name)
             if not plist:
                 continue
@@ -238,19 +239,19 @@ class Spotimy(object):
         for plist in self.list_unhandled():
             if plist["owner"]["id"] != self.username:
                 continue
-            print("{id}: {name}".format(**plist))
+            uprint("{id}: {name}".format(**plist))
 
     def find_song(self, song_url, verbose=True):
         song_id = song_url.split("/")[-1]
         plists = []
-        print("Find song [{}] in playlists.".format(song_id))
+        uprint("Find song [{}] in playlists.".format(song_id))
         for plist in self.sp.current_user_playlists()["items"]:
             if plist["name"] not in self.config["sp"] and plist["name"] not in self.config["rp"]:
                 continue
             tracks = self.get_playlist_tracks(plist)
             if song_id in tracks:
                 if verbose:
-                    print(plist["name"])
+                    uprint(plist["name"])
                 plists.append(plist)
         return plists
 
@@ -298,5 +299,5 @@ class Spotimy(object):
                         continue
                     if trackid in other_ids:
                         found.append(trackid)
-                        print("[{}] is in [{}] ans also in [{}]".format(
+                        uprint("[{}] is in [{}] ans also in [{}]".format(
                             track["track"]["name"], plist_name, other_name))
