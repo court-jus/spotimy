@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 import json
 import os
+import pdb  # noqa
 import random
 import spotipy
 import spotipy.util as util
@@ -43,10 +44,18 @@ class Spotimy(object):
         tracks = self.get_playlist_tracks(playlist)
         while len(tracks) > 48:
             subtracks = tracks[:48]
-            self.sp.current_user_saved_tracks_add(tracks=subtracks)
             tracks = tracks[48:]
+            contained = self.sp.current_user_saved_tracks_contains(tracks=subtracks)
+            contained = zip(subtracks, contained)
+            subtracks = [trackid for trackid, already in contained if not already]
+            if subtracks:
+                self.sp.current_user_saved_tracks_add(tracks=subtracks)
         if tracks:
-            self.sp.current_user_saved_tracks_add(tracks=tracks)
+            contained = self.sp.current_user_saved_tracks_contains(tracks=tracks)
+            contained = zip(tracks, contained)
+            tracks = [trackid for trackid, already in contained if not already]
+            if tracks:
+                self.sp.current_user_saved_tracks_add(tracks=tracks)
 
     def get_playlist_by_name(self, plist_name):
         for plist in self.sp.current_user_playlists()["items"]:
