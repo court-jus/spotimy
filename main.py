@@ -102,6 +102,9 @@ def main():
     parser.add_argument(
         "--cron", action="store_true", default=False,
         help=("Run cron job"))
+    parser.add_argument(
+        "--uniq", action="store_true", default=False,
+        help=("Remove duplicated songs in playlists"))
     args = parser.parse_args()
     config = load_config()
     config.setdefault("nsp", "needs sorting")
@@ -162,6 +165,8 @@ def main():
         sp.find_song(args.find_song)
     if args.find_duplicates:
         sp.find_duplicates(*args.args)
+    if args.uniq:
+        sp.uniq(*args.args)
     if args.cron:
         sp.add_my_plist_tracks_to_library()
         sp.add_library_to_sorting_plist()

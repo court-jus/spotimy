@@ -81,6 +81,11 @@ Spotify suggestion.
 With a playlist name, this action shuffles the specified playlist, else it
 shuffles all the "rp" playlists.
 
+### Remove duplicates
+
+This action finds duplicated tracks in playlists and keep only one occurence
+of them.
+
 ### Find new playlists
 
 This action finds playlists that are not handled.

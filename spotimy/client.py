@@ -301,3 +301,30 @@ class Spotimy(object):
                         found.append(trackid)
                         uprint("[{}] is in [{}] ans also in [{}]".format(
                             track["track"]["name"], plist_name, other_name))
+
+    def uniq(self, *plist_names):
+        plists = {}
+        found = []
+        pl_ids = {}
+        if plist_names:
+            for plist_name in plist_names:
+                plist = self.get_playlist_by_name(plist_name)
+                pl_ids[plist_name] = plist["id"]
+                plists[plist_name] = self.get_playlist_tracks(plist, full=True)
+        else:
+            for plist in self.get_handled_playlists(exclude=self.config["nsp"]):
+                pl_ids[plist["name"]] = plist["id"]
+                plists[plist["name"]] = self.get_playlist_tracks(plist, full=True)
+
+        for plist_name, plist_tracks in plists.items():
+            to_remove = {}
+            for idx, track in enumerate(plist_tracks):
+                if track["track"]["id"] in [t["track"]["id"] for t in plist_tracks[:idx]]:
+                    to_remove.setdefault(track["track"]["id"], []).append(idx)
+            tracks = [{"uri": k, "positions": v} for k, v in to_remove.items()]
+            print("For playlist {}, {} tracks to remove.".format(plist_name, len(tracks)))
+            self.sp.user_playlist_remove_specific_occurrences_of_tracks(
+                self.username, pl_ids[plist_name], tracks[:100],
+            )
+            if len(tracks) > 100:
+                self.uniq(plist_name)
