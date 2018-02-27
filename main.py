@@ -7,6 +7,7 @@ import argparse
 import yaml
 import os
 from spotimy.client import Spotimy
+from spotimy.tools import uprint
 
 
 def load_config():
@@ -98,6 +99,12 @@ def main():
     parser.add_argument(
         "--find-duplicates", action="store_true", default=False,
         help=("Find duplicates (song in multiple playlists."))
+    parser.add_argument(
+        "--cron", action="store_true", default=False,
+        help=("Run cron job"))
+    parser.add_argument(
+        "--uniq", action="store_true", default=False,
+        help=("Remove duplicated songs in playlists"))
     args = parser.parse_args()
     config = load_config()
     config.setdefault("nsp", "needs sorting")
@@ -140,7 +147,7 @@ def main():
         if len(args.args) == 4:
             create_token_file(*args.args)
         else:
-            print("Wrong number of arguments for --create-token-file.")
+            uprint("Wrong number of arguments for --create-token-file.")
         return
     sp = Spotimy(config)
     if args.save_discover:
@@ -158,6 +165,12 @@ def main():
         sp.find_song(args.find_song)
     if args.find_duplicates:
         sp.find_duplicates(*args.args)
+    if args.uniq:
+        sp.uniq(*args.args)
+    if args.cron:
+        sp.add_my_plist_tracks_to_library()
+        sp.add_library_to_sorting_plist()
+        sp.shuffle()
 
 
 if __name__ == "__main__":

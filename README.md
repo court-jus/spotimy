@@ -81,6 +81,11 @@ Spotify suggestion.
 With a playlist name, this action shuffles the specified playlist, else it
 shuffles all the "rp" playlists.
 
+### Remove duplicates
+
+This action finds duplicated tracks in playlists and keep only one occurence
+of them.
+
 ### Find new playlists
 
 This action finds playlists that are not handled.
@@ -90,3 +95,13 @@ This action finds playlists that are not handled.
 This action finds the specified song (can be the song URI
 https://open.spotify.com/track/7GwGEc8Gb07LhVJ9CTC9tM or the song ID
 7GwGEc8Gb07LhVJ9CTC9tM) in the "shuffle playlists" and "sort playlists".
+
+## Cron Job
+
+You can setup a cron job to do some tasks automatically : add tracks
+from your playlists to your library, prepare the needs sorting playlist
+and shuffle your playlists.
+
+### Run the cronjob
+
+    python main.py --cron
