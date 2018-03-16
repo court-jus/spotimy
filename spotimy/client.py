@@ -21,7 +21,10 @@ class Spotimy(object):
         self.get_sp_client()
 
     def get_sp_client(self):
-        scope = 'user-library-read playlist-modify-private playlist-modify-public user-library-modify'
+        scope = ('user-library-read playlist-modify-private '
+                 'playlist-modify-public user-library-modify '
+                 'playlist-read-private '
+                 )
         token_params = self.config["token"]
 
         self.username = token_params.pop("username")
@@ -33,10 +36,20 @@ class Spotimy(object):
             uprint("Can't get token for {}".format(self.username))
             sys.exit()
 
+    def get_all_my_playlists(self):
+        result = []
+        playlists = self.sp.current_user_playlists()
+        while playlists:
+            result.extend(playlists["items"])
+            if not playlists["next"]:
+                break
+            playlists = self.sp.next(playlists)
+        return result
+
     def add_my_plist_tracks_to_library(self):
         save_playlists = self.config["sp"]
         uprint("Adding all tracks in playlists to user's library.")
-        for plist in self.sp.current_user_playlists()["items"]:
+        for plist in self.get_all_my_playlists():
             if plist["name"] in save_playlists:
                 self.add_playlist_tracks_to_library(plist)
 
@@ -59,7 +72,7 @@ class Spotimy(object):
                 self.sp.current_user_saved_tracks_add(tracks=tracks)
 
     def get_playlist_by_name(self, plist_name):
-        for plist in self.sp.current_user_playlists()["items"]:
+        for plist in self.get_all_my_playlists():
             if unicode(plist["name"]) == unicode(plist_name):
                 return plist
 
@@ -231,7 +244,7 @@ class Spotimy(object):
                 self.sp.user_playlist_add_tracks(self.username, plist["id"], tracks)
 
     def list_unhandled(self):
-        for plist in self.sp.current_user_playlists()["items"]:
+        for plist in self.get_all_my_playlists():
             if unicode(plist["name"]) not in self.config["sp"]:
                 yield plist
 
@@ -245,7 +258,7 @@ class Spotimy(object):
         song_id = song_url.split("/")[-1]
         plists = []
         uprint("Find song [{}] in playlists.".format(song_id))
-        for plist in self.sp.current_user_playlists()["items"]:
+        for plist in self.get_all_my_playlists():
             if plist["name"] not in self.config["sp"] and plist["name"] not in self.config["rp"]:
                 continue
             tracks = self.get_playlist_tracks(plist)
@@ -259,7 +272,7 @@ class Spotimy(object):
         plists = []
         if exclude is None:
             exclude = []
-        for plist in self.sp.current_user_playlists()["items"]:
+        for plist in self.get_all_my_playlists():
             if plist["name"] not in self.config["sp"] and plist["name"] not in self.config["rp"]:
                 continue
             if plist["name"] in exclude:
