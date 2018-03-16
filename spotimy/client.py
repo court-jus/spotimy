@@ -232,16 +232,12 @@ class Spotimy(object):
             plist = self.get_playlist_by_name(plist_name)
             if not plist:
                 continue
-            tracks = self.get_playlist_tracks(plist)
-            random.shuffle(tracks)
-            self.sp.user_playlist_replace_tracks(self.username, plist["id"], tracks[:100])
-            tracks = tracks[100:]
-            while len(tracks) > 100:
-                sub_tracks = tracks[:100]
-                tracks = tracks[100:]
-                self.sp.user_playlist_add_tracks(self.username, plist["id"], sub_tracks)
-            if tracks:
-                self.sp.user_playlist_add_tracks(self.username, plist["id"], tracks)
+            tracks_count = plist["tracks"]["total"]
+            positions = list(range(tracks_count))
+            random.shuffle(positions)
+            for new_pos, old_pos in enumerate(positions):
+                self.sp.user_playlist_reorder_tracks(
+                    self.username, plist["id"], old_pos, new_pos)
 
     def list_unhandled(self):
         for plist in self.get_all_my_playlists():
