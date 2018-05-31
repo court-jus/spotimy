@@ -8,10 +8,13 @@ import os
 import pdb  # noqa
 import random
 from spotimy.tools import uprint
+import spotimy.concurrency
 import spotipy
+from spotipy.client import SpotifyException
 import spotipy.util as util
 from spotipy.oauth2 import SpotifyClientCredentials
 import sys
+import time
 
 
 class Spotimy(object):
@@ -56,20 +59,20 @@ class Spotimy(object):
     def add_playlist_tracks_to_library(self, playlist):
         uprint("Adding tracks from playlist '{}' to user library".format(playlist["name"]))
         tracks = self.get_playlist_tracks(playlist)
-        while len(tracks) > 48:
-            subtracks = tracks[:48]
-            tracks = tracks[48:]
-            contained = self.sp.current_user_saved_tracks_contains(tracks=subtracks)
-            contained = zip(subtracks, contained)
-            subtracks = [trackid for trackid, already in contained if not already]
-            if subtracks:
-                self.sp.current_user_saved_tracks_add(tracks=subtracks)
+        contained = spotimy.concurrency.do_bunch(
+            self.sp.current_user_saved_tracks_contains,
+            kwargs={"tracks": tracks},
+            items_kwarg="tracks",
+            limit=50,
+        )
+        contained = zip(tracks, contained)
+        tracks = [trackid for trackid, already in contained if not already]
         if tracks:
-            contained = self.sp.current_user_saved_tracks_contains(tracks=tracks)
-            contained = zip(tracks, contained)
-            tracks = [trackid for trackid, already in contained if not already]
-            if tracks:
-                self.sp.current_user_saved_tracks_add(tracks=tracks)
+            spotimy.concurrency.do_bunch(
+                self.sp.current_user_saved_tracks_add,
+                kwargs={"tracks": tracks},
+                items_kwarg="tracks",
+            )
 
     def get_playlist_by_name(self, plist_name):
         for plist in self.get_all_my_playlists():
@@ -81,17 +84,10 @@ class Spotimy(object):
             return []
         if username is None:
             username = self.username
-        result = []
-        limit = 50
-        biglimit = 1000
-        offset = 0
-        total = None
-        while (len(result) < biglimit and (total is None or len(result) < total)):
-            sub = self.sp.user_playlist_tracks(
-                username, playlist["id"], limit=limit, offset=offset)
-            result.extend(sub["items"])
-            total = sub["total"]
-            offset += limit
+        result = spotimy.concurrency.get_whole(
+            self.sp.user_playlist_tracks,
+            username, playlist["id"],
+        )
 
         if full:
             return result
@@ -102,46 +98,22 @@ class Spotimy(object):
         uprint("Clearing playlist '{}'".format(playlist))
         playlist = self.get_playlist_by_name(playlist)
         tracks = self.get_playlist_tracks(playlist)
-        if len(tracks) < 100:
-            self.sp.user_playlist_remove_all_occurrences_of_tracks(
-                self.username, playlist["id"], tracks)
-        else:
-            while len(tracks):
-                sub_tracks = tracks[:100]
-                tracks = tracks[100:]
-                self.sp.user_playlist_remove_all_occurrences_of_tracks(
-                    self.username, playlist["id"], sub_tracks)
+        spotimy.concurrency.do_bunch(
+            self.sp.user_playlist_remove_all_occurrences_of_tracks,
+            items_arg=2,
+            args=[self.username, playlist["id"], tracks],
+        )
 
     def get_album_tracks(self, album, titles=False):
         if not album:
             return []
-        result = []
-        limit = 50
-        biglimit = 1000
-        offset = 0
-        total = None
-        album_id = album["album"]["id"]
-        while (len(result) < biglimit and (total is None or len(result) < total)):
-            sub= self.sp.album_tracks(album_id, limit=limit, offset=offset)
-            result.extend(sub["items"])
-            total = sub["total"]
-            offset += limit
+        result = spotimy.concurrency.get_album_tracks(self.sp, album)
         field = "name" if titles else "id"
         return map(lambda t: t[field], result)
 
     def get_user_albums(self):
         uprint("Loading user albums")
-        albums = []
-        limit = 50
-        biglimit = 1000
-        offset = 0
-        total = None
-        while (len(albums) < biglimit and (total is None or len(albums) < total)):
-            subalbums = self.sp.current_user_saved_albums(limit=limit, offset=offset)
-            albums.extend(subalbums["items"])
-            total = subalbums["total"]
-            offset += limit
-        return albums
+        return spotimy.concurrency.get_user_albums(self.sp)
 
     def add_library_to_sorting_plist(self, clear=True):
         needs_sorting_playlist = self.config["nsp"]
@@ -149,12 +121,6 @@ class Spotimy(object):
         uprint("Finding user tracks that should be sorted to playlists")
         if clear:
             self.clear_playlist(needs_sorting_playlist)
-        offset = 0
-        limit = 50
-        repeat_count = 2
-        previous_length = None
-        my_library = set()
-        total = None
         already_sorted = set()
         needs_sorting_playlist = self.get_playlist_by_name(needs_sorting_playlist)
         needs_sorting = self.get_playlist_tracks(needs_sorting_playlist)
@@ -165,16 +131,10 @@ class Spotimy(object):
             already_sorted.update(self.get_album_tracks(album))
         uprint("tracks already sorted in user playlists and albums".format(len(already_sorted)))
         uprint("Loading whole library, this will take some time....")
-        while repeat_count and (total is None or len(my_library) < total):
-            saved_tracks = self.sp.current_user_saved_tracks(limit=limit, offset=offset)
-            my_library.update(
-                map(lambda t: t["track"]["id"], saved_tracks["items"])
-            )
-            total = saved_tracks["total"]
-            offset += limit
-            if previous_length is not None and len(my_library) == previous_length:
-                repeat_count -= 1
-            previous_length = len(my_library)
+        my_library = map(
+            lambda t: t["track"]["id"],
+            spotimy.concurrency.get_whole(self.sp.current_user_saved_tracks)
+        )
         uprint("{} total tracks".format(len(my_library)))
         to_sort = set()
         for track in my_library:
@@ -185,16 +145,11 @@ class Spotimy(object):
                 to_sort.add(track)
         uprint("{} tracks to sort".format(len(to_sort)))
         to_sort = list(to_sort)
-        while len(to_sort) > 100:
-            sub_tracks = to_sort[:100]
-            to_sort = to_sort[100:]
-            self.sp.user_playlist_add_tracks(
-                self.username, needs_sorting_playlist["id"], sub_tracks,
-            )
-        if to_sort:
-            self.sp.user_playlist_add_tracks(
-                self.username, needs_sorting_playlist["id"], to_sort,
-            )
+        spotimy.concurrency.do_bunch(
+            self.sp.user_playlist_add_tracks,
+            args=[self.username, needs_sorting_playlist["id"], to_sort],
+            items_arg=2,
+        )
 
     def save_discover(self):
         # Find "Discover weekly" playlist
@@ -213,7 +168,11 @@ class Spotimy(object):
             if contained:
                 to_remove.append(track)
         uprint("{} tracks to remove from [{}]".format(len(to_remove), self.config["dl"]))
-        self.sp.user_playlist_remove_all_occurrences_of_tracks(self.username, dl["id"], to_remove)
+        spotimy.concurrency.do_bunch(
+            self.sp.user_playlist_remove_all_occurrences_of_tracks,
+            args=[self.username, dl["id"], to_remove],
+            items_arg=2,
+        )
         # Add tracks from "Discover weekly" to "discover later" if they are not in library
         to_add = []
         for track in dw_tracks:
@@ -222,7 +181,11 @@ class Spotimy(object):
                 to_add.append(track)
         uprint("{} tracks to add to [{}]".format(len(to_add), self.config["dl"]))
         if to_add:
-            self.sp.user_playlist_add_tracks(self.username, dl["id"], to_add)
+            spotimy.concurrency.do_bunch(
+                self.sp.user_playlist_add_tracks,
+                args=[self.username, dl["id"], to_add],
+                items_arg=2,
+            )
 
     def shuffle(self, *plist_names):
         if not plist_names:
@@ -236,8 +199,19 @@ class Spotimy(object):
             positions = list(range(tracks_count))
             random.shuffle(positions)
             for new_pos, old_pos in enumerate(positions):
-                self.sp.user_playlist_reorder_tracks(
-                    self.username, plist["id"], old_pos, new_pos)
+                done = False
+                while not done:
+                    try:
+                        self.sp.user_playlist_reorder_tracks(
+                            self.username, plist["id"], old_pos, new_pos)
+                    except SpotifyException as e:
+                        if e.http_status == 429:
+                            # API rate limit exceeded
+                            # Retry later
+                            print("API rate limit exceeded, sleep 1")
+                            time.sleep(1)
+                    else:
+                        done = True
 
     def list_unhandled(self):
         for plist in self.get_all_my_playlists():
@@ -331,9 +305,9 @@ class Spotimy(object):
                 if track["track"]["id"] in [t["track"]["id"] for t in plist_tracks[:idx]]:
                     to_remove.setdefault(track["track"]["id"], []).append(idx)
             tracks = [{"uri": k, "positions": v} for k, v in to_remove.items()]
-            print("For playlist {}, {} tracks to remove.".format(plist_name, len(tracks)))
-            self.sp.user_playlist_remove_specific_occurrences_of_tracks(
-                self.username, pl_ids[plist_name], tracks[:100],
+            uprint("For playlist {}, {} tracks to remove.".format(plist_name, len(tracks)))
+            spotimy.concurrency.do_bunch(
+                self.sp.user_playlist_remove_specific_occurrences_of_tracks,
+                args=[self.username, pl_ids[plist_name], tracks],
+                items_arg=2,
             )
-            if len(tracks) > 100:
-                self.uniq(plist_name)
