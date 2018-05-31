@@ -1,3 +1,5 @@
+[![Known Vulnerabilities](https://snyk.io/test/github/court-jus/spotimy/badge.svg?targetFile=requirements.txt)](https://snyk.io/test/github/court-jus/spotimy?targetFile=requirements.txt)
+
 # spotimy
 Script to help with Spotify library management
 
