@@ -72,6 +72,7 @@ class Spotimy(object):
                 self.sp.current_user_saved_tracks_add,
                 kwargs={"tracks": tracks},
                 items_kwarg="tracks",
+                limit=50,
             )
 
     def get_playlist_by_name(self, plist_name):

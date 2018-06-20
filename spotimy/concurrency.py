@@ -2,6 +2,7 @@ from Queue import Queue
 from threading import Thread
 from spotipy.client import SpotifyException
 import sys
+import time
 
 
 class SliceWorker(Thread):
@@ -56,8 +57,10 @@ def do_bunch(func, items_arg=None, items_kwarg=None, limit=100, args=None, kwarg
                     if e.http_status == 429:
                         # API rate limit exceeded
                         # Retry later
-                        print("API rate limit exceeded, sleep 1")
-                        time.sleep(1)
+                        print("API rate limit exceeded, sleep")
+                        time.sleep(0.3)
+                    else:
+                        raise
                 else:
                     done = True
     else:
@@ -78,8 +81,10 @@ def do_bunch(func, items_arg=None, items_kwarg=None, limit=100, args=None, kwarg
                     if e.http_status == 429:
                         # API rate limit exceeded
                         # Retry later
-                        print("API rate limit exceeded, sleep 1")
-                        time.sleep(1)
+                        print("API rate limit exceeded, sleep")
+                        time.sleep(0.3)
+                    else:
+                        raise
                 else:
                     done = True
     return result
