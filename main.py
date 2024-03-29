@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-
 import argparse
 import yaml
 import os
+from yaml.loader import BaseLoader
 from spotimy.client import Spotimy
-from spotimy.tools import uprint
 
 
 def load_config():
@@ -15,7 +13,7 @@ def load_config():
     config = {}
     if os.path.exists(config_filename):
         with open(config_filename, "r") as fp:
-            config = yaml.load(fp)
+            config = yaml.load(fp, BaseLoader)
     if os.path.exists(os.path.join(os.path.expanduser("~"), ".spotifytoken")):
         config["token"] = load_token_file()
     return config
@@ -42,7 +40,7 @@ def create_token_file(username, client_id, client_secret, redirect_uri):
 def load_token_file():
     token_filename = os.path.join(os.path.expanduser("~"), ".spotifytoken")
     with open(token_filename, "r") as fp:
-        token_params = yaml.load(fp)
+        token_params = yaml.load(fp, BaseLoader)
     return token_params
 
 
@@ -118,22 +116,22 @@ def main():
     if args.discover:
         new_config["dl"] = args.discover
     if args.add:
-        add = args.add.decode("utf-8")
+        add = args.add
         if add not in config["sp"]:
             new_config["sp"] = config["sp"]
             new_config["sp"].append(add)
     if args.remove:
-        remove = args.remove.decode("utf-8")
+        remove = args.remove
         if remove in config["sp"]:
             new_config["sp"] = config["sp"]
             new_config["sp"].remove(remove)
     if args.add_rp:
-        add_rp = args.add_rp.decode("utf-8")
+        add_rp = args.add_rp
         if add_rp not in config["rp"]:
             new_config["rp"] = config["rp"]
             new_config["rp"].append(add_rp)
     if args.remove_rp:
-        remove_rp = args.remove_rp.decode("utf-8")
+        remove_rp = args.remove_rp
         if remove_rp in config["rp"]:
             new_config["rp"] = config["rp"]
             new_config["rp"].remove(remove_rp)
@@ -147,7 +145,7 @@ def main():
         if len(args.args) == 4:
             create_token_file(*args.args)
         else:
-            uprint("Wrong number of arguments for --create-token-file.")
+            print("Wrong number of arguments for --create-token-file.")
         return
     sp = Spotimy(config)
     if args.save_discover:
@@ -157,7 +155,7 @@ def main():
     if args.sort_library:
         sp.add_library_to_sorting_plist()
     if args.shuffle:
-        plist_names = map(lambda name: name.decode("utf-8"), args.args)
+        plist_names = args.args
         sp.shuffle(*plist_names)
     if args.find_unhandled:
         sp.find_unhandled()
