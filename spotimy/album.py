@@ -49,13 +49,14 @@ class Album(dict):
             url,
             self.track_count(),
             ms_to_human(self.duration()),
+            self["album"]["id"]
         )
 
     def txt(self) -> List[str]:
         """
         Text presentation of album.
         """
-        artists_name, title, url, track_count, duration = self.attributes()
+        artists_name, title, url, track_count, duration, album_id = self.attributes()
         return [
             f"{artists_name} - {title}",
             f" {track_count} tracks: {duration} - {url}",
@@ -65,7 +66,7 @@ class Album(dict):
         """
         Generate an HTML card representation of album.
         """
-        artists_name, title, url, track_count, duration = self.attributes()
+        artists_name, title, url, track_count, duration, album_id = self.attributes()
         return f"""
 <div class="album-card-container">
     <a href="{url}" target="_blank" rel="noopener">

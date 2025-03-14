@@ -534,6 +534,14 @@ class Spotimy:
             json.dump(cache, fp)
         return cache.get("albums", [])
 
+    def get_favorite_albums_ids(self):
+        favorites_filename = os.path.join(
+            os.path.expanduser("~"),
+            ".spotimyfavoritealbums"
+        )
+        with open(favorites_filename, "r", encoding="utf8") as fp:
+            return json.load(fp)
+
     def albums(self):
         """
         Do stuff about user's albums.
